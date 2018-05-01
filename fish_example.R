@@ -151,71 +151,71 @@ ggsave(file = 'fish_fig_2.pdf', width = 8, height = 4)
 
 
 # NOTE: CODE FROM HEREON EXPERIMENTAL -------------------------------------
-
-# Second example where tau types are learned per covariate ----------------
-
-zi4 = stanc(file = 'model4.stan') # Check Stan file
-zi4_run = stan_model(stanc_ret = zi4) # Compile Stan code
-
-# Sort out data
-y = zinb$count
-x = with(zinb, cbind(1, 
-                     persons - mean(persons),
-                     camper - mean(camper)))
-K = ncol(x)
-dat = list(y = y,
-           x = x,
-           K = K,
-           N = nrow(x))
-my_init = function() {
-  list(tau1p1 = 0.5, tau2p1 = 0.5, alpha = 0, beta = c(0, 0, 0))
-} 
-fit = sampling(zi4_run,
-               data = dat,
-               init = my_init,
-               chain = 1)
-
-# Second model with multiple types ----------------------------------------
-
-# Set up stan
-zi2 = stanc(file = 'model2.stan') # Check Stan file
-zi2_run = stan_model(stanc_ret = zi2) # Compile Stan code
-
-# Get all models remember it's (0,0), (0, -1) and (-1, -1) 
-# for mult, add, and hurdle respectively
-# so if there are four levels of variable persons the combinations are
-# 3^4 = 81 different models!
-all_models = expand.grid(1:3,1:3,1:3,1:3)
-waic_store = matrix(NA, ncol = 2, nrow = nrow(all_models))
-# Let 1 = mult, 2 = add, 3 = hurd
-y = zinb$count
-x = with(zinb, cbind(1, 
-                     persons - mean(persons),
-                     camper - mean(camper)))
-K = ncol(x)
-dat = list(y = y,
-           x = x,
-           K = K,
-           N = nrow(x))
-tau1_all = c(0, 0, -1)
-tau2_all = c(0, -1, -1)
-for(i in 1:nrow(all_models)) {
-  print(i)
-  # Prep data
-  curr_dat = dat
-  curr_dat$tau1 = rep(NA, length(dat$y))
-  curr_dat$tau2 = rep(NA, length(dat$y))
-  for(j in 1:length(dat$y)) {
-    curr_dat$tau1[j] = tau1_all[all_models[i,zinb$persons[j]]]
-    curr_dat$tau2[j] = tau2_all[all_models[i,zinb$persons[j]]]
-  }
-  
-  curr_fit = sampling(zi2_run,
-                      data = curr_dat)
-  curr_log_lik = extract_log_lik(curr_fit)
-  curr_waic = waic(curr_log_lik)
-  waic_store[i,] = c(curr_waic$waic, curr_waic$se_waic)
-}
-
-write.csv(waic_store, file = 'waic_store.csv', 
-          quote = FALSE, row.names = FALSE)
+# 
+# # Second example where tau types are learned per covariate ----------------
+# 
+# zi4 = stanc(file = 'model4.stan') # Check Stan file
+# zi4_run = stan_model(stanc_ret = zi4) # Compile Stan code
+# 
+# # Sort out data
+# y = zinb$count
+# x = with(zinb, cbind(1, 
+#                      persons - mean(persons),
+#                      camper - mean(camper)))
+# K = ncol(x)
+# dat = list(y = y,
+#            x = x,
+#            K = K,
+#            N = nrow(x))
+# my_init = function() {
+#   list(tau1p1 = 0.5, tau2p1 = 0.5, alpha = 0, beta = c(0, 0, 0))
+# } 
+# fit = sampling(zi4_run,
+#                data = dat,
+#                init = my_init,
+#                chain = 1)
+# 
+# # Second model with multiple types ----------------------------------------
+# 
+# # Set up stan
+# zi2 = stanc(file = 'model2.stan') # Check Stan file
+# zi2_run = stan_model(stanc_ret = zi2) # Compile Stan code
+# 
+# # Get all models remember it's (0,0), (0, -1) and (-1, -1) 
+# # for mult, add, and hurdle respectively
+# # so if there are four levels of variable persons the combinations are
+# # 3^4 = 81 different models!
+# all_models = expand.grid(1:3,1:3,1:3,1:3)
+# waic_store = matrix(NA, ncol = 2, nrow = nrow(all_models))
+# # Let 1 = mult, 2 = add, 3 = hurd
+# y = zinb$count
+# x = with(zinb, cbind(1, 
+#                      persons - mean(persons),
+#                      camper - mean(camper)))
+# K = ncol(x)
+# dat = list(y = y,
+#            x = x,
+#            K = K,
+#            N = nrow(x))
+# tau1_all = c(0, 0, -1)
+# tau2_all = c(0, -1, -1)
+# for(i in 1:nrow(all_models)) {
+#   print(i)
+#   # Prep data
+#   curr_dat = dat
+#   curr_dat$tau1 = rep(NA, length(dat$y))
+#   curr_dat$tau2 = rep(NA, length(dat$y))
+#   for(j in 1:length(dat$y)) {
+#     curr_dat$tau1[j] = tau1_all[all_models[i,zinb$persons[j]]]
+#     curr_dat$tau2[j] = tau2_all[all_models[i,zinb$persons[j]]]
+#   }
+#   
+#   curr_fit = sampling(zi2_run,
+#                       data = curr_dat)
+#   curr_log_lik = extract_log_lik(curr_fit)
+#   curr_waic = waic(curr_log_lik)
+#   waic_store[i,] = c(curr_waic$waic, curr_waic$se_waic)
+# }
+# 
+# write.csv(waic_store, file = 'waic_store.csv', 
+#           quote = FALSE, row.names = FALSE)
