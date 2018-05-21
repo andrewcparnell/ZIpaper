@@ -76,7 +76,7 @@ fit_add = sampling(zi1_run,
                                N_cov = N_cov))
 fit_hurd = sampling(zi1_run,
                     data = list(y = y,
-                                tau1 = -1,
+                                tau1 = 1,# Hurdle is (1,-1) not (-1,-1)
                                 tau2 = -1,
                                 x = x,
                                 K = K,
@@ -129,6 +129,7 @@ df2 = data.frame(logit_pi0_50 = logit(exp(lpi0_quantiles[2,])),
                  camper = as.factor(zinb$camper))
 p1 = ggplot(df, aes(pi0_50, pit0_50, 
                     colour = persons, shape = camper)) + 
+  ylim(0, 1) + 
   geom_point() +
   theme_bw() +
   geom_errorbar(aes(ymin = pit0_25, ymax = pit0_75)) + 
@@ -148,6 +149,49 @@ p2 = ggplot(df2, aes(x = logit_pi0_50, logit_pit0_50,
 ggarrange(p1, p2, ncol=2, nrow=1, 
           common.legend = TRUE, legend="bottom")
 ggsave(file = 'fish_fig_2.pdf', width = 8, height = 4)
+
+# Compare with empirical --------------------------------------------------
+
+# Calculate empirical probabilities of zero
+# Need the proportions of zeroes for each combination of persons and camper
+ans = aggregate(zinb$count, by = list(zinb$persons, zinb$camper), function(x) length(x[x==0])/length(x))
+colnames(ans) = c('persons', 'camper', 'p0')
+ans$persons_std = ans$persons - mean(zinb$persons)
+ans$camper_std = ans$camper - mean(zinb$camper)
+
+ans2 = as.data.frame(x_cov)
+ans2$pi0_est = exp(lpi0_quantiles[2,])
+ans2$pit0_est = exp(lpit0_quantiles[2,])
+colnames(ans2) = c('const', 'persons_std', 'camper_std', 'pi0', 'pit0')
+
+ans3 = merge(ans, ans2)
+
+p3 = ggplot(ans3, aes(x = pi0, y = p0)) + geom_point() + 
+  xlim(0, 1) + ylim(0, 1) + geom_abline(intercept = 0, slope = 1)
+p4 = ggplot(ans3, aes(x = pit0, y = p0)) + geom_point() + 
+  xlim(0, 1) + ylim(0, 1) + geom_abline(intercept = 0, slope = 1)
+ggarrange(p3, p4, ncol=2, nrow=1)
+
+lpi0 = rstan::extract(fit_hurd, pars = 'lpi0')$lpi0
+lpit0 = rstan::extract(fit_hurd, pars = 'lpit0')$lpit0
+lpi0_hurd_quantiles = apply(lpi0, 2, 'quantile', probs = c(25,50,75)/100)
+lpit0_hurd_quantiles = apply(lpit0, 2, 'quantile', probs = c(25,50,75)/100)
+ans4 = as.data.frame(x_cov)
+ans4$pi0_est = exp(lpi0_hurd_quantiles[2,])
+ans4$pit0_est = exp(lpit0_hurd_quantiles[2,])
+colnames(ans4) = c('const', 'persons_std', 'camper_std', 'pi0', 'pit0')
+
+ans5 = merge(ans, ans4)
+
+
+p5 = ggplot(ans3, aes(x = pi0, y = p0)) + geom_point() + 
+  geom_point(data = ans5, aes(x = pi0, y = p0, colour = 'red')) +
+  xlim(0, 1) + ylim(0, 1) + geom_abline(intercept = 0, slope = 1)
+p6 = ggplot(ans3, aes(x = pit0, y = p0)) + geom_point() + 
+  geom_point(data = ans5, aes(x = pit0, y = p0, colour = 'red')) +
+  xlim(0, 1) + ylim(0, 1) + geom_abline(intercept = 0, slope = 1)
+ggarrange(p5, p6, ncol=2, nrow=1)
+
 
 
 # NOTE: CODE FROM HEREON EXPERIMENTAL -------------------------------------

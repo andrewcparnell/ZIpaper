@@ -60,6 +60,6 @@ generated quantities {
                 tau1 * theta_cov[n] + 
                 tau2 * log(1 + x_cov[n] * beta);
     lpit0[n] = ZIPo_lpmf(0 | omega_cov[n], theta_cov[n]);
-    lpi0[n] = -theta_cov[n];
+    lpi0[n] = -x_cov[n] * beta;
   }
 }
